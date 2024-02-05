@@ -1,0 +1,36 @@
+{
+    "manifest_version": 3,
+    "name": "Email Extension",
+    "version": "1.0",
+    "oauth2": {
+        "client_id": "143549715330-ru9rpcppugaihnh6lqp0nk5t24h28slg.apps.googleusercontent.com",
+        "scopes": ["https://www.googleapis.com/auth/gmail.compose"]
+      },
+    "description": "Send emails using a Chrome Extension",
+    "permissions": [
+        "tabs",
+        "bookmarks",
+        "scripting",
+        "storage",
+        "identity"
+        
+      ], 
+      "host_permissions":[
+        "https://mail.google.com/"
+      ],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icons16.png",
+        "48": "icons48.png",
+        "128": "icons128.png"
+      }
+    },
+    "icons": {
+      "16": "icons16.png",
+      "48": "icons48.png",
+      "128": "icons128.png"
+    }
+}
+  
+  
