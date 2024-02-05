@@ -1,34 +1,51 @@
-// popup.js
+// emailvalidation
 
+
+// popup.js
 document.addEventListener('DOMContentLoaded', () => {
   let sendEmailButton = document.getElementById('sendEmailButton');
 
   sendEmailButton.addEventListener('click', () => {
-    alert('Email sent successfully!');
-    setTimeout(() => {
-      location.reload();
-    }, 900);
-    
-    chrome.identity.getAuthToken({ interactive: true }, function (token) {
-      if (!chrome.runtime.lastError) {
-        let recipientEmails = document.getElementById('recipientEmails').value.split(',');
-        console.log(recipientEmails);
-        // Fetch the content of another HTML file
-        fetch('index.html')
-        .then(response => response.text())
-        .then(indexHtml => {
-          // Continue with sending the email and attaching the HTML file
-          recipientEmails.forEach(recipient => {
-          sendEmail(token, indexHtml, recipient);
-          })    
-        })
-          .catch(error => console.error('Error loading index.html:', error));     
-      }
-    });
+    let subjectEmailInput = document.getElementById('subjectEmail');
+    let recipientEmailsInput = document.getElementById('recipientEmails');
+    let subjectEmailInput1 = subjectEmailInput.value.split(',');
+    let recipientEmails = recipientEmailsInput.value.split(',');
+
+    // Validate each email address
+    if (validateEmails(recipientEmails)) {
+      // Proceed with sending the email
+      alert('Email sent successfully!');
+      setTimeout(() => {
+        location.reload();
+      }, 900);
+
+      chrome.identity.getAuthToken({ interactive: true }, function (token) {
+        if (!chrome.runtime.lastError) {
+          // Fetch the content of another HTML file
+          fetch('index.html')
+            .then(response => response.text())
+            .then(indexHtml => {
+              // Continue with sending the email and attaching the HTML file
+              recipientEmails.forEach(recipient => {
+                sendEmail(token, indexHtml, recipient,subjectEmailInput1);
+              });
+            })
+            .catch(error => console.error('Error loading index.html:', error));
+        }
+      });
+    } else {
+      alert('Invalid email address/es. Please check and try again.');
+    }
   });
 });
 
-function sendEmail(token, flyerHtml, recipientEmails) {
+// Function to validate email addresses
+function validateEmails(emails) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emails.every(email => emailRegex.test(email.trim()));
+}
+
+function sendEmail(token, flyerHtml, recipientEmails , subjectEmail) {
   // Greetings and content of the email
   const helloMessage = '<b>Hello,</b>';
   const thankYouMessage = '<b>Thanks & Regards,<br> Vipul Porwal';
@@ -36,7 +53,7 @@ function sendEmail(token, flyerHtml, recipientEmails) {
   let message = [
     `From: Vipul Porwal <vipul.porwal@dotvik.com>`,
     `To: ${recipientEmails}`,
-    'Subject: AIS Flyer',
+    `Subject: ${subjectEmail}`,
     'Content-Type: multipart/mixed; boundary="boundary"',
     '',
     '--boundary',
