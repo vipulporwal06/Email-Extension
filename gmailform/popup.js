@@ -1,14 +1,13 @@
-// emailvalidation
-
-
 // popup.js
 document.addEventListener('DOMContentLoaded', () => {
   let sendEmailButton = document.getElementById('sendEmailButton');
 
   sendEmailButton.addEventListener('click', () => {
     let subjectEmailInput = document.getElementById('subjectEmail');
+    let messageEmailInput = document.getElementById('messageEmail');
     let recipientEmailsInput = document.getElementById('recipientEmails');
     let subjectEmailInput1 = subjectEmailInput.value.split(',');
+    let messageEmailInput1 = messageEmailInput.value.split(',');
     let recipientEmails = recipientEmailsInput.value.split(',');
 
     // Validate each email address
@@ -20,21 +19,30 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 900);
 
       chrome.identity.getAuthToken({ interactive: true }, function (token) {
+        console.log(token)
         if (!chrome.runtime.lastError) {
+          // Store the token in local storage
+          storeTokenLocally(token);
+
           // Fetch the content of another HTML file
           fetch('index.html')
-            .then(response => response.text())
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`Failed to fetch 'index.html': ${response.statusText}`);
+              }
+              return response.text();
+            })
             .then(indexHtml => {
               // Continue with sending the email and attaching the HTML file
               recipientEmails.forEach(recipient => {
-                sendEmail(token, indexHtml, recipient,subjectEmailInput1);
+                sendEmail(token, indexHtml, recipient, subjectEmailInput1, messageEmailInput1);
               });
             })
             .catch(error => console.error('Error loading index.html:', error));
         }
       });
     } else {
-      alert('Invalid email address/es. Please check and try again.');
+      alert('Invalid email address. Please check and try again.');
     }
   });
 });
@@ -45,21 +53,31 @@ function validateEmails(emails) {
   return emails.every(email => emailRegex.test(email.trim()));
 }
 
-function sendEmail(token, flyerHtml, recipientEmails , subjectEmail) {
+// Function to store token in local storage
+function storeTokenLocally(token) {
+  chrome.storage.local.set({ 'authToken': token }, function () {
+    console.log('Token stored:', token);
+  });
+}
+
+// Function to send email
+function sendEmail(token, flyerHtml, recipientEmails, subjectEmail, messageEmail) {
   // Greetings and content of the email
-  const helloMessage = '<b>Hello,</b>';
   const thankYouMessage = '<b>Thanks & Regards,<br> Vipul Porwal';
   // Create a MIME message with the HTML file as an attachment
+
+  flyerHtml = flyerHtml.replace('${emailid}', encodeURIComponent(recipientEmails));
   let message = [
     `From: Vipul Porwal <vipul.porwal@dotvik.com>`,
     `To: ${recipientEmails}`,
     `Subject: ${subjectEmail}`,
+    `Message: ${messageEmail}`,
     'Content-Type: multipart/mixed; boundary="boundary"',
     '',
     '--boundary',
     'Content-Type: text/html; charset="UTF-8"',
     '',
-    `${helloMessage}\n\n${flyerHtml}\n\n${thankYouMessage}`, 
+    `${messageEmail}<br><br>\n\n${flyerHtml}\n\n${thankYouMessage}`,
     '',
     '--boundary',
     'Content-Type: text/plain; charset="UTF-8"',
@@ -79,7 +97,8 @@ function sendEmail(token, flyerHtml, recipientEmails , subjectEmail) {
     }),
   })
     .then(response => response.json())
-    .then(data => console.log('Email sent:', data))
+    .then(data => {
+      console.log(`Email sent to ${recipientEmails}`);
+    })
     .catch(error => console.error('Error sending email:', error));
-  console.log('Email sent to ${recipientEmail}');
 }
