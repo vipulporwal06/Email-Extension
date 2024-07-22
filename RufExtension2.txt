@@ -1,0 +1,219 @@
+{
+    "manifest_version": 3,
+    "name": "Google Login Extension",
+    "version": "1.0",
+    "description": "A simple Chrome extension with Google login",
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icons16.png",
+        "48": "icons48.png",
+        "128": "icons128.png"
+      }
+    },
+    "permissions": [ 
+    "identity",
+    "activeTab",
+    "storage"
+  ],
+    "oauth2": {
+      "client_id": "143549715330-qumms1hsiv0fomdahf0vspsbqt3kmnup.apps.googleusercontent.com",
+      "scopes": ["https://www.googleapis.com/auth/gmail.compose"],
+      "sub": "subject",
+      "iat": 1632833385,
+      "exp": 1632836985,
+      "typ": "JWT"
+    },
+    "icons": {
+      "16": "icons16.png",
+      "48": "icons48.png",
+      "128": "icons128.png"
+    }
+  }
+ 
+ 
+ 
+ =============================================
+ 
+ popup.html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login Extension</title>
+  <script src="script.js"></script>
+</head>
+<body>
+  <button id="loginButton">Login</button>
+</body>
+</html>
+
+
+===================================================
+
+// document.addEventListener('DOMContentLoaded', function() {
+//     document.getElementById('loginButton').addEventListener('click', function() {
+//       console.log("Hello")
+//       chrome.identity.getAuthToken({ interactive: true }, function(token) {
+//         if (chrome.runtime.lastError || !token) {
+//           console.error('Error getting OAuth2 token: ', chrome.runtime.lastError);
+//         } else {
+//           console.log('OAuth2 token:', token);
+//           // Use the token as needed
+//         }
+//         chrome.storage.local.set({ 'oauthToken': token }, function() {
+//           if (chrome.runtime.lastError) {
+//             console.error('Error storing token in local storage: ', chrome.runtime.lastError);
+//           } else {
+//             console.log('Token stored in local storage.');
+//           }
+//         });
+  
+//         chrome.storage.local.get(['oauthToken'], function(result) {
+//           const storedToken = result.oauthToken;
+//           if (storedToken) {
+//             console.log('Retrieved OAuth token from local storage:', storedToken);
+  
+//             // Calculate time spent
+//             const timeSpent = calculateTimeSpent(storedToken);
+//             console.log('Time spent:', timeSpent, 'milliseconds');
+//           } else {
+//             console.error('OAuth token not found in local storage.');
+//           }
+//         });
+//       });
+//     });
+//   });
+
+// function parseJWT(token) {
+//     // ... (Your existing code for parsing the JWT)
+//     const base64Url = token.split('.')[1];
+//     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+//     const paddedBase64 = base64 + '='.substring(0, (4 - base64.length % 4) % 4); // Add padding
+//     console.log(paddedBase64);
+//     const jsonPayload = decodeURIComponent(
+//         atob(paddedBase64)
+//           .split("")
+//           .map(function (c) {
+//             return "/" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+//           })
+//           .join("")
+//     );
+//     try {
+//      return JSON.stringify(jsonPayload);
+//     } catch (error) {
+//       console.error('Error parsing JWT:', error);
+//       return null;
+//     }
+// }
+
+// function calculateTimeSpent(token) {
+//     const decodedToken = parseJWT(token);
+//     console.log('Decoded Token:', decodedToken);
+//     let vtoken = JSON.parse(decodedToken);
+//     if (vtoken &&  vtoken.iat && vtoken.exp) {
+//       const startTime = vtoken.iat * 1000; // Convert to milliseconds
+//       const endTime = vtoken.exp * 1000; // Convert to milliseconds
+
+//        // Debugging output
+//        console.log('Issued At:', new Date(vtoken.iat * 1000));
+//        console.log('Expiration Time:', new Date(vtoken.exp * 1000));
+       
+//       // Calculate time spent in milliseconds
+//       if (endTime > startTime) {
+//           // Calculate time spent
+//           const timeSpent = endTime - startTime;
+//           return timeSpent;
+//         } else {
+//           console.error('Invalid time calculation: endTime is not greater than startTime.');
+//           return null
+//         }
+//       } else {
+//         console.error('Invalid or missing token information for time calculation.');
+//         return null
+//       }
+//   }
+
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('loginButton').addEventListener('click', function () {
+      gapi.auth2.getAuthInstance().signIn().then(function(_googleUser) {
+          console.log('Google Sign-In successful!');
+          // Access user information using googleUser.getBasicProfile() if needed
+          // Perform additional actions as needed
+      }).catch(function(error) {
+          console.error('Google Sign-In error:', error);
+      });
+  });
+});
+
+
+======================================It's also woking======================================
+
+document.addEventListener('DOMContentLoaded', function () {
+  var loginButton = document.getElementById('loginButton');
+  var logoutButton = document.getElementById('logoutButton');
+  var userInfoDiv = document.getElementById('userInfo');
+
+  if (loginButton) {
+    loginButton.addEventListener('click', function () {
+      chrome.identity.getAuthToken({ 'interactive': true }, function (token) {
+        if (chrome.runtime.lastError || !token) {
+          console.error('Error getting OAuth2 token:', chrome.runtime.lastError || "No token obtained");
+        } else {
+          console.log('OAuth2 token:', token);
+          // Continue with the normal flow
+          getUserInfo(token);
+          // Show the logout button
+          if (logoutButton) logoutButton.style.display = 'inline-block';
+          if (loginButton) loginButton.style.display = 'none';
+        }
+      });
+    });
+  }
+  if (logoutButton) {
+    logoutButton.addEventListener('click', function () {
+      chrome.identity.getAuthToken({ 'interactive': false }, function (currentToken) {
+        if (!chrome.runtime.lastError && currentToken) {
+          // Remove the cached OAuth token
+          chrome.identity.removeCachedAuthToken({ token: currentToken }, function () {
+          //Clear user data in local storage
+          clearJsonData();
+            // Perform additional cleanup if needed
+            console.log('Token revoked successfully');
+            if (userInfoDiv) userInfoDiv.innerHTML = '';
+          });
+        } else {
+          console.error('Error revoking token: ', chrome.runtime.lastError);
+        }
+      });
+    });
+  }
+  function clearJsonData() {
+    // Assuming 'jsonDataKey' is the key you want to remove from local storage
+    chrome.storage.local.remove('jsonDataKey', function () {
+      console.log('JSON data cleared from local storage');
+    });
+  }
+  function getUserInfo(token) {
+    fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        displayUserInfo(data);
+        console.log('User Info:', data);
+      })
+      .catch(error => {
+        console.error('Error fetching user info:', error);
+      });
+  }
+
+  function displayUserInfo(userInfo) {
+    if (userInfoDiv) userInfoDiv.innerHTML = `<p>Hello, ${userInfo.name}!</p>`;
+  }
+});
+
+===============================================================================================
+Dotvik@!Dotvik@
